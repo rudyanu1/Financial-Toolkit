@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Financial Toolkit</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#161A22; --paper:#EFEAE0; --slate:#7C879A; --amber:#C99A3A;
+    --gain:#4C8A63; --loss:#B24A3D; --line: rgba(22,26,34,0.14);
+    --bg: var(--paper); --fg: var(--ink); --card: #FFFDF8; --card-border: var(--line);
+    box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ --bg:#0E1116; --fg:#E7E2D6; --card:#161B22; --card-border:rgba(231,226,214,0.14); --line:rgba(231,226,214,0.14); }
+  }
+  :root[data-theme="dark"]{ --bg:#0E1116; --fg:#E7E2D6; --card:#161B22; --card-border:rgba(231,226,214,0.14); --line:rgba(231,226,214,0.14); }
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--fg); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;}
+  .app{max-width:1080px; margin:0 auto; padding:32px 20px 64px;}
+  h1{font-family:'Source Serif 4',serif; font-weight:600; font-size:clamp(24px,4vw,34px); margin:0 0 4px;}
+  .sub{color:var(--slate); font-size:14.5px; max-width:66ch; line-height:1.5; margin:0 0 28px;}
+  .grid{display:grid; grid-template-columns: 340px 1fr; gap:20px;}
+  @media (max-width:800px){ .grid{grid-template-columns:1fr;} }
+  .card{background:var(--card); border:1px solid var(--card-border); border-radius:6px; padding:20px;}
+  .card + .card{margin-top:20px;}
+  h2{font-family:'Source Serif 4',serif; font-weight:600; font-size:16px; margin:22px 0 12px; display:flex; align-items:baseline; gap:8px;}
+  h2:first-child{margin-top:0;}
+  #unitsBadge{font-family:'Inter',sans-serif; font-weight:400; font-size:11px; color:var(--slate);}
+  .asset-row{display:grid; grid-template-columns: 1fr 52px 52px 52px 22px; gap:6px; align-items:center; margin-bottom:8px;}
+  .asset-row input{width:100%; font-family:'JetBrains Mono',monospace; font-size:12px; padding:6px 5px; border:1px solid var(--line); border-radius:4px; background:transparent; color:var(--fg);}
+  .asset-row input[type=text]{font-family:'Inter',sans-serif;}
+  .col-labels{display:grid; grid-template-columns: 1fr 52px 52px 52px 22px; gap:6px; font-size:10px; color:var(--slate); margin-bottom:6px;}
+  .rm{background:none; border:none; color:var(--loss); cursor:pointer; font-size:16px; line-height:1;}
+  .preset-row{display:flex; gap:6px; margin-top:6px;}
+  select{font-family:'Inter',sans-serif; font-size:12.5px; padding:7px 8px; border:1px solid var(--line); border-radius:4px; background:var(--card); color:var(--fg);}
+  #presetSelect{flex:1; min-width:0;}
+  #addAsset{font-size:12.5px; background:none; border:1px dashed var(--line); color:var(--slate); border-radius:4px; padding:6px 10px; cursor:pointer; white-space:nowrap;}
+  .field{margin-top:14px;}
+  .field label{display:flex; justify-content:space-between; font-size:12.5px; color:var(--slate); margin-bottom:4px;}
+  .field label span:last-child{font-family:'JetBrains Mono',monospace; color:var(--fg);}
+  .field select{width:100%;}
+  .hint{font-size:11px; color:var(--slate); margin-top:5px; line-height:1.4;}
+  input[type=range]{width:100%; accent-color:var(--amber);}
+  input[type=number]{width:100%; font-family:'JetBrains Mono',monospace; padding:7px 8px; border:1px solid var(--line); border-radius:4px; background:transparent; color:var(--fg);}
+  #runBtn{margin-top:20px; width:100%; background:var(--amber); color:#1a1408; border:none; border-radius:4px; padding:11px; font-size:14.5px; font-weight:500; cursor:pointer; font-family:'Inter',sans-serif;}
+  #runBtn:disabled, #solveBtn:disabled{opacity:0.6; cursor:default;}
+  .stats-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px; margin-top:18px;}
+  .stat b{display:block; font-family:'JetBrains Mono',monospace; font-size:18px;}
+  .stat span{font-size:11px; color:var(--slate); line-height:1.35; display:block; margin-top:2px;}
+  #chartWrap{overflow-x:auto; position:relative;}
+  svg{width:100%; height:auto; display:block; cursor:crosshair;}
+  .legend{display:flex; gap:14px; font-size:11px; color:var(--slate); margin-top:8px; flex-wrap:wrap;}
+  .legend i{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px;}
+  .empty{color:var(--slate); font-size:13.5px; padding:40px 10px; text-align:center;}
+  .callout{margin-top:18px; font-size:13px; line-height:1.55; padding:12px 14px; border-left:3px solid var(--amber); background:rgba(201,154,58,0.09); border-radius:0 4px 4px 0;}
+  .callout b{font-family:'Source Serif 4',serif;}
+  .tabbar{display:flex; gap:22px; margin-bottom:24px; border-bottom:1px solid var(--line);}
+  .tab-btn{background:none; border:none; font-family:'Inter',sans-serif; font-size:14px; font-weight:500; color:var(--slate); padding:10px 2px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;}
+  .tab-btn.active{color:var(--fg); border-bottom-color:var(--amber);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+  .tip{position:absolute; pointer-events:none; background:var(--ink); color:#F4EFE3; font-family:'JetBrains Mono',monospace; font-size:11px; padding:8px 10px; border-radius:4px; line-height:1.5; z-index:5; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,0.25);}
+  #rChartWrap,#mChartWrap{position:relative; overflow-x:auto;}
+  .banner{padding:12px 14px; border-radius:4px; font-size:13.5px; margin-bottom:16px; line-height:1.5;}
+  .banner b{font-family:'Source Serif 4',serif;}
+  .banner.good{background:rgba(76,138,99,0.12); border-left:3px solid var(--gain);}
+  .banner.bad{background:rgba(178,74,61,0.12); border-left:3px solid var(--loss);}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Financial Toolkit</h1>
+  <div class="tabbar">
+    <button class="tab-btn active" id="tabBtnInvest" type="button">Portfolio Simulator</button>
+    <button class="tab-btn" id="tabBtnRetire" type="button">Retirement Number</button>
+    <button class="tab-btn" id="tabBtnMortgage" type="button">Mortgage</button>
+  </div>
+  <div id="tabInvest" class="tab-panel active">
+  <p class="sub">A single projected return is a guess dressed up as a number. This runs simulated futures — with fat-tailed shocks, fees, contributions or withdrawals, and a goal check — so you see the real spread of outcomes. Horizons under 2 years are simulated and shown month by month; longer ones in years. Hover the chart to inspect any point.</p>
+  <div class="grid">
+    <div class="card">
+      <h2>Your holdings</h2>
+      <div class="col-labels"><div>Asset</div><div>Wt %</div><div>Ret %</div><div>Vol %</div><div></div></div>
+      <div id="assetRows"></div>
+      <div class="preset-row">
+        <select id="presetSelect">
+          <option value="">Quick add preset…</option>
+          <option value="us_stock">US Stocks — 9% / 16%</option>
+          <option value="bonds">Bonds — 4% / 5%</option>
+          <option value="intl">Intl Stocks — 7% / 18%</option>
+          <option value="emerging">Emerging Markets — 8% / 24%</option>
+          <option value="reit">REITs — 8% / 20%</option>
+          <option value="highyield">High-Yield Bonds — 6% / 10%</option>
+          <option value="tips">TIPS (Infl-Protected) — 3% / 6%</option>
+          <option value="commodities">Commodities/Gold — 5% / 19%</option>
+          <option value="smallcap">Small-Cap — 10% / 22%</option>
+          <option value="crypto">Crypto (illustrative) — 15% / 60%</option>
+          <option value="cash">Cash — 3% / 1%</option>
+          <option value="balanced">Balanced Mix — 6% / 10%</option>
+        </select>
+        <button id="addAsset" type="button">+ Blank</button>
+      </div>
+
+      <h2>Contributions &amp; withdrawals</h2>
+      <div class="field">
+        <label>Cash flow</label>
+        <select id="cashMode" style="width:100%">
+          <option value="none">None — lump sum only</option>
+          <option value="contribute">Contribute regularly</option>
+          <option value="withdraw">Withdraw regularly</option>
+        </select>
+      </div>
+      <div class="field" id="cashAmountField" style="display:none">
+        <label>Annual amount ($, today's dollars)</label>
+        <input type="number" id="cashAmount" value="10000" step="500">
+      </div>
+      <div class="field" id="inflationField" style="display:none">
+        <label style="display:flex; align-items:center; gap:6px; justify-content:flex-start;">
+          <input type="checkbox" id="inflAdjust" checked style="width:auto; margin:0;"> Grow with inflation
+        </label>
+        <div class="hint">Uses the inflation rate set below, under Simulation settings.</div>
+      </div>
+      <div class="field" id="solverField" style="display:none">
+        <label><span>Target success rate</span><span id="targetSuccessVal">90%</span></label>
+        <input type="range" id="targetSuccess" min="50" max="99" step="1" value="90">
+        <button id="solveBtn" type="button" style="margin-top:8px; width:100%; background:none; border:1px solid var(--amber); color:var(--amber); border-radius:4px; padding:8px; font-size:12.5px; cursor:pointer; font-family:'Inter',sans-serif;">Find sustainable withdrawal</button>
+        <div id="solverResult" class="hint"></div>
+      </div>
+
+      <h2>Simulation settings</h2>
+      <div class="field">
+        <label>Time horizon</label>
+        <div style="display:flex; gap:6px;">
+          <input type="number" id="horizon" value="20" min="1" step="1" style="flex:1">
+          <select id="timeUnit" style="width:100px">
+            <option value="years">Years</option>
+            <option value="months">Months</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label><span>Correlation between holdings</span><span id="corrVal">0.30</span></label>
+        <input type="range" id="corr" min="0" max="0.9" step="0.05" value="0.3">
+      </div>
+      <div class="field">
+        <label><span>Market turbulence</span><span id="turbVal">5</span></label>
+        <input type="range" id="turb" min="3" max="30" step="1" value="5">
+        <div class="hint">Lower = rare periods can be much more extreme (shows up mainly in worst-case outcomes, not the everyday range). Higher = closer to a smooth bell curve.</div>
+      </div>
+      <div class="field">
+        <label><span>Simulations to run</span><span id="simsVal">3,000</span></label>
+        <input type="range" id="simsCount" min="500" max="5000" step="500" value="3000">
+        <div class="hint">More = smoother, statistically steadier percentiles (slower to compute).</div>
+      </div>
+      <div class="field">
+        <label>Starting balance</label>
+        <input type="number" id="initial" value="100000" step="1000">
+      </div>
+      <div class="field">
+        <label>Annual fees (%)</label>
+        <input type="number" id="fees" value="0.5" step="0.1">
+      </div>
+      <div class="field">
+        <label>Inflation rate assumption (%)</label>
+        <input type="number" id="inflRate" value="2.5" step="0.1">
+      </div>
+      <div class="field">
+        <label>Optional goal amount</label>
+        <input type="number" id="goal" placeholder="e.g. 1000000" step="10000">
+      </div>
+      <div class="field" style="display:flex; align-items:center; gap:6px;">
+        <input type="checkbox" id="realDollars" style="width:auto; margin:0;">
+        <label for="realDollars" style="margin:0; font-size:12.5px; color:var(--slate);">Show results in today's dollars</label>
+      </div>
+      <button id="runBtn" type="button">Run simulation</button>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Projected range of outcomes<span id="unitsBadge"></span></h2>
+      <p class="hint" style="margin-top:-6px; margin-bottom:14px;">Fat-tailed model (Student's t) — hover the chart for exact values at any point.</p>
+      <div id="chartWrap"><div class="empty">Set your holdings and run the simulation.</div></div>
+      <div class="legend">
+        <div><i style="background:rgba(201,154,58,0.28)"></i>5th–95th percentile</div>
+        <div><i style="background:rgba(201,154,58,0.55)"></i>25th–75th percentile</div>
+        <div><i style="background:#C99A3A"></i>Median path</div>
+        <div><i style="background:#B24A3D"></i>Sample: rough run</div>
+        <div><i style="background:#7C879A"></i>Sample: typical run</div>
+        <div><i style="background:#4C8A63"></i>Sample: strong run</div>
+      </div>
+      <div id="stats" class="stats-grid"></div>
+      <div id="seqCallout" class="callout" style="display:none"></div>
+    </div>
+  </div>
+  </div>
+
+  <div id="tabRetire" class="tab-panel">
+  <p class="sub">A quick, comprehensive readiness check — no simulation, just the math. Everything below is in today's purchasing power (real, inflation-adjusted dollars), so there's no nominal/real toggle to think about.</p>
+  <div class="grid">
+    <div class="card">
+      <h2>About you</h2>
+      <div class="field"><label>Current age</label><input type="number" id="rCurrentAge" value="35"></div>
+      <div class="field"><label>Target retirement age</label><input type="number" id="rRetireAge" value="65"></div>
+      <div class="field"><label>Plan to age (life expectancy)</label><input type="number" id="rLifeExp" value="90"></div>
+
+      <h2>Savings &amp; contributions</h2>
+      <div class="field"><label>Current retirement savings</label><input type="number" id="rSavings" value="100000" step="1000"></div>
+      <div class="field"><label>Current annual contribution</label><input type="number" id="rContribution" value="15000" step="500"></div>
+
+      <h2>Spending in retirement</h2>
+      <div class="field"><label>Current annual expenses</label><input type="number" id="rExpenses" value="60000" step="1000"></div>
+      <div class="field">
+        <label><span>Retirement spending target</span><span id="rReplaceVal">80%</span></label>
+        <input type="range" id="rReplace" min="30" max="120" step="5" value="80">
+        <div class="hint">As a % of current expenses. Target: <span id="rSpendComputed">$48,000</span>/yr.</div>
+      </div>
+
+      <h2>Other retirement income</h2>
+      <div class="field"><label>Social Security / pension (annual)</label><input type="number" id="rOtherIncome" value="20000" step="500"></div>
+      <div class="field"><label>Starts at age</label><input type="number" id="rIncomeAge" value="67"></div>
+      <div class="field"><label>Part-time / rental income (annual)</label><input type="number" id="rPartIncome" value="0" step="500"></div>
+      <div class="field"><label>...received until age</label><input type="number" id="rPartEnd" value="72"></div>
+
+      <h2>Healthcare &amp; big expenses</h2>
+      <div class="field"><label>Extra healthcare cost (annual)</label><input type="number" id="rHealth" value="6000" step="500"></div>
+      <div class="field"><label>Healthcare inflation above general (%)</label><input type="number" id="rHealthGrowth" value="1.5" step="0.1"></div>
+      <div class="field"><label>One-time big expense (e.g. home, gift)</label><input type="number" id="rOneTime" value="0" step="1000"></div>
+      <div class="field"><label>...at age</label><input type="number" id="rOneAge" value="75"></div>
+
+      <h2>Assumptions</h2>
+      <div class="field"><label>Pre-retirement return (%)</label><input type="number" id="rPreReturn" value="7" step="0.5"></div>
+      <div class="field"><label>Post-retirement return (%)</label><input type="number" id="rPostReturn" value="4" step="0.5"></div>
+      <div class="field"><label>Inflation rate (%)</label><input type="number" id="rInfl" value="2.5" step="0.1"></div>
+      <div class="field"><label>Fees (%)</label><input type="number" id="rFees" value="0.5" step="0.1"></div>
+      <div class="field">
+        <label><span>Safe withdrawal rate (for comparison)</span><span id="rSwrVal">4.0%</span></label>
+        <input type="range" id="rSwr" min="2.5" max="6" step="0.1" value="4">
+      </div>
+      <button id="rRunBtn" type="button">Calculate</button>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Your retirement readiness</h2>
+      <div id="rBanner" class="banner" style="display:none"></div>
+      <p class="hint" style="margin:-6px 0 12px">Hover the chart to inspect any age.</p>
+      <div id="rChartWrap"><div class="empty">Fill in your numbers and calculate.</div></div>
+      <div class="legend">
+        <div><i style="background:#C99A3A"></i>Projected balance</div>
+        <div><i style="background:var(--slate)"></i>Retirement age</div>
+        <div><i style="background:var(--loss)"></i>Funds depleted (if it happens)</div>
+      </div>
+      <div id="rStats" class="stats-grid"></div>
+    </div>
+  </div>
+  </div>
+  <div id="tabMortgage" class="tab-panel">
+  <p class="sub">Built differently: instead of plugging into the textbook payment formula, this simulates the loan month by month and searches for the payment that lands the balance on exactly zero. It then layers on what most calculators skip — PMI that falls off using paydown <i>and</i> appreciation, the true monthly cost of owning, and what selling would really net you.</p>
+  <div class="grid">
+    <div class="card">
+      <h2>The home</h2>
+      <div class="field"><label>Home price</label><input type="number" id="mHome" value="450000" step="5000"></div>
+      <div class="field"><label><span>Down payment</span><span id="mDownVal">20%</span></label><input type="range" id="mDown" min="0" max="50" step="1" value="20"><div class="hint">= <span id="mDownComputed">$90,000</span></div></div>
+      <h2>The loan</h2>
+      <div class="field"><label>Interest rate (%)</label><input type="number" id="mRate" value="6.5" step="0.125"></div>
+      <div class="field"><label>Term (years)</label><input type="number" id="mTerm" value="30"></div>
+      <div class="field"><label>Extra payment per month</label><input type="number" id="mExtra" value="200" step="50"></div>
+      <h2>Carrying costs</h2>
+      <div class="field"><label>Property tax (% of value / yr)</label><input type="number" id="mTax" value="1.1" step="0.05"></div>
+      <div class="field"><label>Homeowners insurance (annual)</label><input type="number" id="mIns" value="1800" step="100"></div>
+      <div class="field"><label>PMI (% of loan / yr, if under 20% down)</label><input type="number" id="mPmi" value="0.6" step="0.05"></div>
+      <div class="field"><label>HOA (monthly)</label><input type="number" id="mHoa" value="0" step="25"></div>
+      <div class="field"><label>Maintenance (% of value / yr)</label><input type="number" id="mMaint" value="1" step="0.1"></div>
+      <h2>Outlook</h2>
+      <div class="field"><label>Home appreciation (% / yr)</label><input type="number" id="mApp" value="3" step="0.25"></div>
+      <div class="field"><label>If you sold after (years)</label><input type="number" id="mSell" value="7"><div class="hint">Assumes 6% selling costs.</div></div>
+      <button id="mRunBtn" type="button">Calculate</button>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Your mortgage, fully loaded</h2>
+      <div id="mBanner" class="banner good" style="display:none"></div>
+      <p class="hint" style="margin:-6px 0 12px">Hover the chart to inspect any month.</p>
+      <div id="mChartWrap"><div class="empty">Enter your numbers and calculate.</div></div>
+      <div class="legend">
+        <div><i style="background:#C99A3A"></i>Loan balance</div>
+        <div><i style="background:#4C8A63"></i>With extra payments</div>
+        <div><i style="background:var(--slate)"></i>PMI drops off</div>
+        <div><i style="background:var(--loss)"></i>Principal overtakes interest</div>
+      </div>
+      <div id="mStats" class="stats-grid"></div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<script>
+const rowsEl = document.getElementById('assetRows');
+const chartWrap = document.getElementById('chartWrap');
+const corrInput = document.getElementById('corr');
+let lastSim = null;
+let currentBands = [];
+
+const defaults = [
+  {name:'US Stocks', w:60, r:9, v:16},
+  {name:'Bonds', w:30, r:4, v:5},
+  {name:'Intl Stocks', w:10, r:7, v:18},
+];
+const presets = {
+  us_stock:{name:'US Stocks', r:9, v:16},
+  bonds:{name:'Bonds', r:4, v:5},
+  intl:{name:'Intl Stocks', r:7, v:18},
+  emerging:{name:'Emerging Mkts', r:8, v:24},
+  reit:{name:'REITs', r:8, v:20},
+  highyield:{name:'High-Yield Bonds', r:6, v:10},
+  tips:{name:'TIPS', r:3, v:6},
+  commodities:{name:'Commodities', r:5, v:19},
+  smallcap:{name:'Small-Cap', r:10, v:22},
+  crypto:{name:'Crypto', r:15, v:60},
+  cash:{name:'Cash', r:3, v:1},
+  balanced:{name:'Balanced Mix', r:6, v:10},
+};
+
+function addRow(a){
+  a = a || {name:'', w:0, r:6, v:12};
+  const row = document.createElement('div');
+  row.className = 'asset-row';
+  row.innerHTML = `
+    <input type="text" value="${a.name}" placeholder="Name">
+    <input type="number" value="${a.w}" step="1">
+    <input type="number" value="${a.r}" step="0.5">
+    <input type="number" value="${a.v}" step="0.5">
+    <button class="rm" type="button" title="Remove">&times;</button>`;
+  row.querySelector('.rm').onclick = () => { row.remove(); };
+  rowsEl.appendChild(row);
+}
+
+document.getElementById('addAsset').onclick = () => addRow();
+document.getElementById('presetSelect').onchange = function(){
+  if(!this.value) return;
+  const p = presets[this.value];
+  addRow({name:p.name, w:0, r:p.r, v:p.v});
+  this.value = '';
+};
+corrInput.oninput = () => document.getElementById('corrVal').textContent = parseFloat(corrInput.value).toFixed(2);
+document.getElementById('turb').oninput = function(){ document.getElementById('turbVal').textContent = turbLabel(this.value); };
+document.getElementById('simsCount').oninput = function(){ document.getElementById('simsVal').textContent = parseInt(this.value).toLocaleString(); };
+document.getElementById('targetSuccess').oninput = function(){ document.getElementById('targetSuccessVal').textContent = this.value+'%'; };
+document.getElementById('realDollars').onchange = renderResults;
+document.getElementById('cashMode').onchange = function(){
+  const show = this.value !== 'none';
+  document.getElementById('cashAmountField').style.display = show ? 'block' : 'none';
+  document.getElementById('inflationField').style.display = show ? 'block' : 'none';
+  document.getElementById('solverField').style.display = this.value==='withdraw' ? 'block' : 'none';
+};
+
+function turbLabel(df){
+  df = parseInt(df);
+  const tag = df<=6 ? 'crash-prone' : (df<=15 ? 'moderate' : 'calm');
+  return df+' ('+tag+')';
+}
+
+function randNormal(){
+  let u=0,v=0;
+  while(u===0) u=Math.random();
+  while(v===0) v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function randStdT(df){
+  const z = randNormal();
+  let chiSq = 0;
+  for(let i=0;i<df;i++){ const n=randNormal(); chiSq += n*n; }
+  const t = z / Math.sqrt(chiSq/df);
+  return t*Math.sqrt((df-2)/df);
+}
+
+function readAssets(){
+  const rows = [...rowsEl.querySelectorAll('.asset-row')];
+  const assets = rows.map(r=>{
+    const ins = r.querySelectorAll('input');
+    return {name: ins[0].value||'Asset', w: parseFloat(ins[1].value)/100, r: parseFloat(ins[2].value)/100, v: parseFloat(ins[3].value)/100};
+  }).filter(a=>!isNaN(a.w) && a.w>0);
+  const totalW = assets.reduce((s,a)=>s+a.w,0);
+  if(totalW>0) assets.forEach(a=>a.w = a.w/totalW);
+  return assets;
+}
+function readAssetsRaw(){
+  return [...rowsEl.querySelectorAll('.asset-row')].map(r=>{
+    const ins = r.querySelectorAll('input');
+    return {name: ins[0].value, w: parseFloat(ins[1].value)||0, r: parseFloat(ins[2].value)||0, v: parseFloat(ins[3].value)||0};
+  });
+}
+
+function percentile(arr, p){
+  const sorted = [...arr].sort((a,b)=>a-b);
+  const idx = (sorted.length-1)*p;
+  const lo = Math.floor(idx), hi = Math.ceil(idx);
+  if(lo===hi) return sorted[lo];
+  return sorted[lo] + (sorted[hi]-sorted[lo])*(idx-lo);
+}
+function fmt(n){ return '$'+Math.round(n).toLocaleString(); }
+// FIX: cap horizon so a typo (e.g. 100000) can't freeze the tab
+function readPeriods(unit){ const cap = unit==='months' ? 1200 : 100; return Math.min(cap, Math.max(1, parseInt(document.getElementById('horizon').value)||1)); }
+
+function readCashFlow(){
+  return {
+    mode: document.getElementById('cashMode').value,
+    amount: parseFloat(document.getElementById('cashAmount').value) || 0,
+    inflAdjust: document.getElementById('inflAdjust').checked
+  };
+}
+
+// Shared simulation engine. periods is a count of steps in `unit` ("years" or "months");
+// asset r/v are always ANNUAL figures and get converted to per-period figures internally.
+// trackPaths/computeBands can be disabled for cheap repeated calls (the solver).
+function simulateCore({assets, corr, df, periods, unit, feeRate, cashMode, cashAmount, inflAdjust, inflRate, initial, sims, trackPaths, computeBands}){
+  if(trackPaths === undefined) trackPaths = true;
+  if(computeBands === undefined) computeBands = true;
+  const ppy = unit==='months' ? 12 : 1;
+  const periodAssets = assets.map(a => ({
+    w: a.w,
+    r: unit==='months' ? Math.pow(1+a.r, 1/12)-1 : a.r,
+    v: unit==='months' ? a.v/Math.sqrt(12) : a.v
+  }));
+  const periodFee = unit==='months' ? feeRate/12 : feeRate;
+  const periodInfl = unit==='months' ? Math.pow(1+inflRate, 1/12)-1 : inflRate;
+  const periodCashAmount0 = cashAmount / ppy;
+  const firstYearPeriods = Math.min(ppy, periods);
+
+  const cashByPeriod = [];
+  let totalContributed = initial;
+  for(let p=0; p<periods; p++){
+    let amt = periodCashAmount0;
+    if(inflAdjust) amt *= Math.pow(1+periodInfl, p);
+    cashByPeriod.push(amt);
+    if(cashMode==='contribute') totalContributed += amt;
+  }
+
+  const paths = [], finals = [], firstYearReturns = [], depletedPeriods = [];
+  let depletedCount = 0;
+
+  for(let s=0; s<sims; s++){
+    let value = initial;
+    const path = trackPaths ? [initial] : null;
+    let depletedPeriod = null, cumFirst = 1;
+    for(let p=0; p<periods; p++){
+      const Zc = randStdT(df);
+      let periodReturn = 0;
+      for(const a of periodAssets){
+        const Zi = randStdT(df);
+        const shock = Math.sqrt(corr)*Zc + Math.sqrt(1-corr)*Zi;
+        periodReturn += a.w*(a.r + a.v*shock);
+      }
+      periodReturn -= periodFee;
+      if(p < firstYearPeriods) cumFirst *= (1+periodReturn);
+      value = value*(1+periodReturn);
+      if(cashMode==='contribute'){
+        value += cashByPeriod[p];
+      } else if(cashMode==='withdraw'){
+        value -= cashByPeriod[p];
+        if(value<=0 && depletedPeriod===null){ depletedPeriod = p+1; value = 0; }
+        else if(depletedPeriod!==null){ value = 0; }
+      }
+      value = Math.max(value,0);
+      if(trackPaths) path.push(value);
+    }
+    if(trackPaths) paths.push(path);
+    finals.push(value);
+    firstYearReturns.push(cumFirst-1);
+    if(depletedPeriod!==null){ depletedCount++; depletedPeriods.push(depletedPeriod); }
+  }
+
+  let bands = [];
+  if(computeBands && trackPaths){
+    for(let p=0; p<=periods; p++){
+      const vals = paths.map(pp=>pp[p]);
+      bands.push({p5:percentile(vals,0.05), p25:percentile(vals,0.25), p50:percentile(vals,0.5), p75:percentile(vals,0.75), p95:percentile(vals,0.95)});
+    }
+  }
+
+  return {paths, finals, bands, firstYearReturns, depletedCount, depletedPeriods, totalContributed, cashByPeriod, firstYearPeriods, periodInfl, sims};
+}
+
+function runSimulation(){
+  const assets = readAssets();
+  if(assets.length===0){
+    chartWrap.innerHTML = '<div class="empty">Add at least one holding with a weight.</div>';
+    document.getElementById('stats').innerHTML = '';
+    document.getElementById('seqCallout').style.display = 'none';
+    lastSim = null;
+    return;
+  }
+  const corr = parseFloat(corrInput.value);
+  const unit = document.getElementById('timeUnit').value;
+  const periods = readPeriods(unit);
+  const initial = parseFloat(document.getElementById('initial').value) || 0;
+  const cash = readCashFlow();
+  const goal = parseFloat(document.getElementById('goal').value) || 0;
+  const inflRate = (parseFloat(document.getElementById('inflRate').value)||0)/100;
+  const feeRate = (parseFloat(document.getElementById('fees').value)||0)/100;
+  const df = parseInt(document.getElementById('turb').value);
+  const sims = parseInt(document.getElementById('simsCount').value);
+
+  const core = simulateCore({assets, corr, df, periods, unit, feeRate, cashMode:cash.mode, cashAmount:cash.amount, inflAdjust:cash.inflAdjust, inflRate, initial, sims});
+
+  const sortedIdx = core.finals.map((f,i)=>[f,i]).sort((a,b)=>a[0]-b[0]);
+  const pick = (pct) => sortedIdx[Math.min(sortedIdx.length-1, Math.max(0,Math.floor(pct*(sortedIdx.length-1))))][1];
+  const samplePaths = [core.paths[pick(0.1)], core.paths[pick(0.5)], core.paths[pick(0.9)]];
+
+  const expReturn = assets.reduce((s,a)=>s+a.w*a.r,0) - feeRate;
+  let variance = 0;
+  for(const a of assets) variance += a.w*a.w*a.v*a.v;
+  for(const a of assets) for(const b of assets) if(a!==b) variance += a.w*b.w*corr*a.v*b.v;
+  const vol = Math.sqrt(Math.max(variance,0));
+  const sharpe = vol>0 ? ((expReturn-0.02)/vol) : 0;
+
+  lastSim = {
+    bands: core.bands, finals: core.finals, periods, unit, initial, cash,
+    totalContributed: core.totalContributed, cashByPeriod: core.cashByPeriod, depletedCount: core.depletedCount,
+    depletedPeriods: core.depletedPeriods, firstYearReturns: core.firstYearReturns,
+    firstYearPeriods: core.firstYearPeriods, periodInfl: core.periodInfl,
+    vol, sharpe, goal, samplePaths
+  };
+  saveState();
+  renderResults();
+}
+
+function solveWithdrawalRate(){
+  const assets = readAssets();
+  if(assets.length===0) return;
+  const corr = parseFloat(corrInput.value);
+  const df = parseInt(document.getElementById('turb').value);
+  const unit = document.getElementById('timeUnit').value;
+  const periods = readPeriods(unit);
+  const initial = parseFloat(document.getElementById('initial').value) || 0;
+  const feeRate = (parseFloat(document.getElementById('fees').value)||0)/100;
+  const inflRate = (parseFloat(document.getElementById('inflRate').value)||0)/100;
+  const inflAdjust = document.getElementById('inflAdjust').checked;
+  const targetSuccess = (parseFloat(document.getElementById('targetSuccess').value)||90)/100;
+  const solverSims = 600;
+
+  const okAt = amt => 1 - simulateCore({assets, corr, df, periods, unit, feeRate, cashMode:'withdraw', cashAmount:amt, inflAdjust, inflRate, initial, sims:300, trackPaths:false, computeBands:false}).depletedCount/300 >= targetSuccess;
+  let lo = 0, hi = Math.max(initial*0.3, 1000);
+  for(let e=0; e<8 && okAt(hi); e++){ lo = hi; hi *= 2; }
+  for(let iter=0; iter<20; iter++){
+    const mid = (lo+hi)/2;
+    const res = simulateCore({assets, corr, df, periods, unit, feeRate, cashMode:'withdraw', cashAmount:mid, inflAdjust, inflRate, initial, sims:solverSims, trackPaths:false, computeBands:false});
+    const successRate = 1 - res.depletedCount/solverSims;
+    if(successRate >= targetSuccess) lo = mid; else hi = mid;
+  }
+  document.getElementById('cashAmount').value = Math.round(lo);
+  document.getElementById('solverResult').textContent = 'Solved: ~$'+Math.round(lo).toLocaleString()+'/yr keeps failure risk at or below '+Math.round((1-targetSuccess)*100)+'% (quick-check estimate, '+solverSims.toLocaleString()+' sims per step).';
+  runSimulation();
+}
+
+function renderResults(){
+  if(!lastSim) return;
+  const real = document.getElementById('realDollars').checked;
+  const infl = lastSim.periodInfl;
+  const periods = lastSim.periods;
+  const unit = lastSim.unit;
+  const deflate = (v,p) => real ? v/Math.pow(1+infl,p) : v;
+
+  currentBands = lastSim.bands.map((b,p)=>({
+    p5:deflate(b.p5,p), p25:deflate(b.p25,p), p50:deflate(b.p50,p), p75:deflate(b.p75,p), p95:deflate(b.p95,p)
+  }));
+  const finals = lastSim.finals.map(f=>deflate(f, periods));
+  const sampleDeflated = lastSim.samplePaths.map(path => path.map((v,p)=>deflate(v,p)));
+  drawChart(currentBands, periods, lastSim.initial, unit, sampleDeflated);
+  document.getElementById('unitsBadge').textContent = real ? '\u2014 today\u2019s dollars' : '';
+
+  const unitWord = (n) => unit==='months' ? (n===1?'month':'months') : (n===1?'year':'years');
+  const median = percentile(finals,0.5), p5 = percentile(finals,0.05), p95 = percentile(finals,0.95);
+  const stats = [
+    {v:fmt(median), l:'Median outcome'},
+    {v:fmt(p5), l:'5th percentile (bad case)', c:'var(--loss)'},
+    {v:fmt(p95), l:'95th percentile (good case)', c:'var(--gain)'},
+  ];
+
+  if(lastSim.cash.mode==='withdraw'){
+    const failRate = lastSim.depletedCount/lastSim.finals.length*100;
+    stats.push({v:failRate.toFixed(1)+'%', l:'Chance money runs out within '+periods+' '+unitWord(periods), c: failRate>20?'var(--loss)':undefined});
+    if(lastSim.depletedPeriods.length>0){
+      const typicalP = Math.round(percentile(lastSim.depletedPeriods,0.5));
+      stats.push({v:(unit==='months'?'Mo ':'Yr ')+typicalP, l:'Typical '+(unit==='months'?'month':'year')+' it runs out (if it does)'});
+    }
+  } else {
+    let threshold = lastSim.initial, lossLabel = 'Chance of ending below your starting balance';
+    if(lastSim.cash.mode==='contribute'){
+      // FIX: when showing today's dollars, compare against contributions deflated the same way as the outcomes
+      threshold = real ? lastSim.cashByPeriod.reduce((s,c,p)=>s+c/Math.pow(1+infl,p+1), lastSim.initial) : lastSim.totalContributed;
+      lossLabel = 'Chance of ending below $ contributed ('+(real?'today\u2019s $':'nominal')+')';
+    }
+    const lossProb = finals.filter(f=>f<threshold).length/finals.length*100;
+    stats.push({v:lossProb.toFixed(1)+'%', l:lossLabel});
+  }
+
+  if(lastSim.goal>0){
+    const hitRate = finals.filter(f=>f>=lastSim.goal).length/finals.length*100;
+    stats.push({v:hitRate.toFixed(1)+'%', l:'Chance of reaching your $'+Math.round(lastSim.goal).toLocaleString()+' goal', c: hitRate<50?'var(--loss)':'var(--gain)'});
+  }
+
+  stats.push({v:(lastSim.vol*100).toFixed(1)+'%', l:'Annual volatility (portfolio mix)'});
+  stats.push({v:lastSim.sharpe.toFixed(2), l:'Sharpe ratio (est., net of fees)'});
+
+  document.getElementById('stats').innerHTML = stats.map(s=>`<div class="stat"><b${s.c?` style="color:${s.c}"`:''}>${s.v}</b><span>${s.l}</span></div>`).join('');
+
+  const seqEl = document.getElementById('seqCallout');
+  const fyp = lastSim.firstYearPeriods;
+  if(periods >= fyp*2){
+    const paired = lastSim.firstYearReturns.map((r,i)=>({r, f:finals[i]})).sort((a,b)=>a.r-b.r);
+    const third = Math.floor(finals.length/3);
+    const badMed = percentile(paired.slice(0,third).map(p=>p.f), 0.5);
+    const goodMed = percentile(paired.slice(-third).map(p=>p.f), 0.5);
+    const stretchWord = unit==='months' ? ('first '+fyp+'-month stretch') : (fyp===1 ? 'year one' : ('first '+fyp+' years'));
+    seqEl.style.display = 'block';
+    seqEl.innerHTML = '<b>Timing matters:</b> simulations where the '+stretchWord+' was among the roughest finished with a median of '+fmt(badMed)+'. Ones that opened strong finished with '+fmt(goodMed)+' — same long-run assumptions, very different results depending on when the tough stretch lands.';
+  } else {
+    seqEl.style.display = 'none';
+  }
+}
+
+function drawChart(bands, periods, initial, unit, samplePaths){
+  const W=700,H=380, padL=64, padR=16, padT=16, padB=32;
+  const plotW = W-padL-padR, plotH = H-padT-padB;
+  const sampleFlat = samplePaths ? samplePaths.flat() : [];
+  const maxV = Math.max(...bands.map(b=>b.p95), ...sampleFlat) * 1.05 || 1;
+  const minV = Math.min(0, Math.min(...bands.map(b=>b.p5)));
+  const x = i => padL + (i/periods)*plotW;
+  const y = v => padT + plotH - ((v-minV)/(maxV-minV))*plotH;
+
+  const pathStr = (key) => bands.map((b,i)=> (i===0?'M':'L') + x(i) + ' ' + y(b[key])).join(' ');
+  const bandPath = (lowKey, highKey) => {
+    const top = bands.map((b,i)=>(i===0?'M':'L') + x(i) + ' ' + y(b[highKey])).join(' ');
+    const bottom = bands.slice().reverse().map((b,i)=> 'L' + x(periods-i) + ' ' + y(b[lowKey])).join(' ');
+    return top + ' ' + bottom + ' Z';
+  };
+
+  let gridLines = '';
+  const steps = 4;
+  for(let i=0;i<=steps;i++){
+    const v = minV + (maxV-minV)*i/steps;
+    const yy = y(v);
+    gridLines += `<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="var(--line)" stroke-width="1"/>`;
+    gridLines += `<text x="${padL-8}" y="${yy+4}" text-anchor="end" font-size="10" fill="var(--slate)" font-family="JetBrains Mono, monospace">$${Math.round(v/1000)}k</text>`;
+  }
+  let xLabels = '';
+  const xStep = Math.max(1, Math.round(periods/6));
+  const unitTag = unit==='months' ? 'Mo ' : 'Yr ';
+  for(let i=0;i<=periods;i+=xStep){
+    xLabels += `<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--slate)" font-family="JetBrains Mono, monospace">${unitTag}${i}</text>`;
+  }
+
+  let sampleLines = '';
+  if(samplePaths && samplePaths.length===3){
+    const colors = ['#B24A3D','#7C879A','#4C8A63'];
+    samplePaths.forEach((path,idx)=>{
+      const d = path.map((v,i)=>(i===0?'M':'L')+x(i)+' '+y(v)).join(' ');
+      sampleLines += `<path d="${d}" fill="none" stroke="${colors[idx]}" stroke-width="1.3" stroke-dasharray="${idx===1?'0':'3,2'}" opacity="0.75"/>`;
+    });
+  }
+
+  const svg = `
+  <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    ${gridLines}
+    <line x1="${padL}" y1="${y(initial)}" x2="${W-padR}" y2="${y(initial)}" stroke="var(--slate)" stroke-dasharray="3,3" stroke-width="1"/>
+    <path d="${bandPath('p5','p95')}" fill="rgba(201,154,58,0.22)" stroke="none"/>
+    <path d="${bandPath('p25','p75')}" fill="rgba(201,154,58,0.5)" stroke="none"/>
+    ${sampleLines}
+    <path d="${pathStr('p50')}" fill="none" stroke="#C99A3A" stroke-width="2.5"/>
+    ${xLabels}
+  </svg>`;
+  chartWrap.innerHTML = svg;
+}
+
+function handleChartHover(e){
+  if(!lastSim || !currentBands.length) return;
+  const svg = chartWrap.querySelector('svg');
+  if(!svg) return;
+  const rect = svg.getBoundingClientRect();
+  if(rect.width===0) return;
+  const W=700, padL=64, padR=16;
+  const relX = (e.clientX - rect.left) / rect.width * W;
+  const periods = lastSim.periods;
+  const plotW = W - padL - padR;
+  let idx = Math.round(((relX - padL) / plotW) * periods);
+  idx = Math.max(0, Math.min(periods, idx));
+  showTooltip(idx, e.clientX, e.clientY);
+}
+function showTooltip(idx, clientX, clientY){
+  const b = currentBands[idx];
+  if(!b) return;
+  let tip = document.getElementById('chartTip');
+  if(!tip){
+    tip = document.createElement('div');
+    tip.id = 'chartTip';
+    tip.style.cssText = 'position:absolute; pointer-events:none; background:var(--ink); color:#F4EFE3; font-family:"JetBrains Mono",monospace; font-size:11px; padding:8px 10px; border-radius:4px; line-height:1.5; z-index:5; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,0.25);';
+    chartWrap.appendChild(tip);
+  }
+  const unitLabel = lastSim.unit==='months' ? 'Month ' : 'Year ';
+  tip.innerHTML = unitLabel+idx+'<br>Median: '+fmt(b.p50)+'<br>Range: '+fmt(b.p5)+' \u2013 '+fmt(b.p95);
+  tip.style.display = 'block';
+  const wrapRect = chartWrap.getBoundingClientRect();
+  let left = clientX - wrapRect.left + 14;
+  let top = clientY - wrapRect.top - 44;
+  if(left + 150 > wrapRect.width) left = clientX - wrapRect.left - 160;
+  if(top < 0) top = clientY - wrapRect.top + 14;
+  tip.style.left = left+'px';
+  tip.style.top = top+'px';
+}
+chartWrap.addEventListener('mousemove', handleChartHover);
+chartWrap.addEventListener('mouseleave', ()=>{ const tip=document.getElementById('chartTip'); if(tip) tip.style.display='none'; });
+chartWrap.addEventListener('touchstart', e=>{ if(e.touches[0]) handleChartHover(e.touches[0]); }, {passive:true});
+chartWrap.addEventListener('touchmove', e=>{ if(e.touches[0]) handleChartHover(e.touches[0]); }, {passive:true});
+
+function withBusyLabel(btn, busyText, fn){
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = busyText;
+  setTimeout(() => { fn(); btn.textContent = original; btn.disabled = false; }, 20);
+}
+document.getElementById('runBtn').onclick = function(){ withBusyLabel(this, 'Running…', runSimulation); };
+document.getElementById('solveBtn').onclick = function(){ withBusyLabel(this, 'Solving…', solveWithdrawalRate); };
+
+// ===== Tabs =====
+const TABS = {invest:['tabBtnInvest','tabInvest'], retire:['tabBtnRetire','tabRetire'], mortgage:['tabBtnMortgage','tabMortgage']};
+function switchTab(name){
+  Object.keys(TABS).forEach(k=>{
+    document.getElementById(TABS[k][0]).classList.toggle('active', k===name);
+    document.getElementById(TABS[k][1]).classList.toggle('active', k===name);
+  });
+  try{ localStorage.setItem('financeToolkitTab', name); }catch(e){}
+}
+Object.keys(TABS).forEach(k=>{ document.getElementById(TABS[k][0]).onclick = () => switchTab(k); });
+
+// Shared hover helper for the deterministic charts: maps mouse x to an index 0..count and shows a tooltip.
+function attachHover(wrap, count, tipHtml){
+  const W=700, padL=64, padR=16;
+  const move = e => {
+    const n = count(); const svg = wrap.querySelector('svg');
+    if(!n || !svg) return;
+    const rect = svg.getBoundingClientRect(); if(!rect.width) return;
+    const relX = (e.clientX-rect.left)/rect.width*W;
+    const idx = Math.max(0, Math.min(n, Math.round(((relX-padL)/(W-padL-padR))*n)));
+    let tip = wrap.querySelector('.tip');
+    if(!tip){ tip = document.createElement('div'); tip.className='tip'; wrap.appendChild(tip); }
+    tip.innerHTML = tipHtml(idx); tip.style.display='block';
+    const wr = wrap.getBoundingClientRect();
+    let left = e.clientX-wr.left+14, top = e.clientY-wr.top-56;
+    if(left+180>wr.width) left = e.clientX-wr.left-190;
+    if(top<0) top = e.clientY-wr.top+14;
+    tip.style.left=left+'px'; tip.style.top=top+'px';
+  };
+  wrap.addEventListener('mousemove', move);
+  wrap.addEventListener('mouseleave', ()=>{ const t=wrap.querySelector('.tip'); if(t) t.style.display='none'; });
+  wrap.addEventListener('touchstart', e=>{ if(e.touches[0]) move(e.touches[0]); }, {passive:true});
+  wrap.addEventListener('touchmove', e=>{ if(e.touches[0]) move(e.touches[0]); }, {passive:true});
+}
+function yAxis(maxV, W, H, padL, padR, padT, plotH){
+  let s='';
+  for(let i=0;i<=4;i++){
+    const v=maxV*i/4, yy=padT+plotH-(v/maxV)*plotH;
+    s+=`<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="var(--line)"/><text x="${padL-8}" y="${yy+4}" text-anchor="end" font-size="10" fill="var(--slate)" font-family="JetBrains Mono, monospace">$${Math.round(v/1000)}k</text>`;
+  }
+  return s;
+}
+
+// ===== Retirement Number calculator =====
+// Real (today's-dollar) terms throughout. The FI number is the present value of a per-age net-need schedule,
+// and the trajectory withdraws that same schedule, so the two can never disagree.
+function computeRetirement(p){
+  const clampAge = v => Math.min(120, Math.max(0, v));   // FIX: ages drive loop lengths, so bound them
+  const currentAge = clampAge(p.currentAge), retireAge = clampAge(p.retireAge), lifeSpan = Math.max(retireAge, clampAge(p.lifeExpectancy));
+  const rPre = (1+p.preReturn-p.feeRate)/(1+p.inflation) - 1;
+  const rPost = (1+p.postReturn-p.feeRate)/(1+p.inflation) - 1;
+  const n = Math.max(0, retireAge - currentAge);
+  const spending = p.currentExpenses * p.replacementRate/100;
+  const needAt = a => Math.max(0, spending + p.health*Math.pow(1+p.healthGrowth, a-retireAge) + (a===p.oneAge ? p.oneTime : 0)
+                                 - (a>=p.incomeStartAge ? p.otherIncome : 0) - (a<=p.partEnd ? p.partIncome : 0));
+  let fiNumber = 0;
+  for(let a=retireAge+1; a<=lifeSpan; a++) fiNumber += needAt(a)/Math.pow(1+rPost, a-retireAge);
+  const classicRuleNumber = p.swr>0 ? Math.max(0, spending+p.health-p.otherIncome)/(p.swr/100) : null;
+
+  const fvFactor = (r,yrs) => Math.abs(r)<1e-9 ? yrs : (Math.pow(1+r,yrs)-1)/r;
+  const annuityFactor = fvFactor(rPre, n);
+  const projectedSavings = p.currentSavings*Math.pow(1+rPre,n) + p.annualContribution*annuityFactor;
+  const surplus = projectedSavings - fiNumber;
+  const neededContribution = annuityFactor>1e-9 ? (fiNumber - p.currentSavings*Math.pow(1+rPre,n))/annuityFactor : null;
+  const coastFINumber = fiNumber / Math.pow(1+rPre, n);
+
+  let yearsToFI = p.currentSavings>=fiNumber ? 0 : null, bal = p.currentSavings;
+  for(let y=1; y<=80 && yearsToFI===null; y++){ bal = bal*(1+rPre)+p.annualContribution; if(bal>=fiNumber) yearsToFI = y; }
+
+  const trajectory = [{age:currentAge, balance:p.currentSavings, need:null}];
+  bal = p.currentSavings;
+  for(let a=currentAge+1; a<=retireAge; a++){ bal = bal*(1+rPre)+p.annualContribution; trajectory.push({age:a, balance:Math.max(bal,0), need:null}); }
+  let depletionAge = null;
+  for(let a=retireAge+1; a<=lifeSpan; a++){
+    const need = needAt(a);
+    bal = bal*(1+rPost) - need;
+    if(bal < -0.01 && depletionAge===null) depletionAge = a;   // tolerance: an exactly-funded plan must not warn
+    if(bal < 0) bal = 0;
+    trajectory.push({age:a, balance:bal, need});
+  }
+  return {fiNumber, classicRuleNumber, projectedSavings, surplus, neededContribution, coastFINumber, coastReached:p.currentSavings>=coastFINumber, yearsToFI, trajectory, depletionAge, retireAge, contribution:p.annualContribution};
+}
+
+document.getElementById('rReplace').oninput = function(){
+  document.getElementById('rReplaceVal').textContent = this.value+'%';
+  document.getElementById('rSpendComputed').textContent = fmt((parseFloat(document.getElementById('rExpenses').value)||0)*this.value/100);
+};
+document.getElementById('rExpenses').oninput = () => document.getElementById('rReplace').dispatchEvent(new Event('input'));
+document.getElementById('rSwr').oninput = function(){ document.getElementById('rSwrVal').textContent = parseFloat(this.value).toFixed(1)+'%'; };
+
+let lastRet = null;
+function runRetirement(){
+  const g = id => parseFloat(document.getElementById(id).value) || 0;
+  const res = computeRetirement({
+    currentAge:g('rCurrentAge'), retireAge:g('rRetireAge'), lifeExpectancy:g('rLifeExp'),
+    currentSavings:g('rSavings'), annualContribution:g('rContribution'),
+    currentExpenses:g('rExpenses'), replacementRate:g('rReplace'),
+    otherIncome:g('rOtherIncome'), incomeStartAge:g('rIncomeAge'), partIncome:g('rPartIncome'), partEnd:g('rPartEnd'),
+    health:g('rHealth'), healthGrowth:g('rHealthGrowth')/100, oneTime:g('rOneTime'), oneAge:g('rOneAge'),
+    preReturn:g('rPreReturn')/100, postReturn:g('rPostReturn')/100, inflation:g('rInfl')/100,
+    feeRate:g('rFees')/100, swr:g('rSwr')
+  });
+  lastRet = res;
+  const banner = document.getElementById('rBanner');
+  banner.style.display = 'block';
+  if(res.surplus >= 0){ banner.className='banner good'; banner.innerHTML='<b>On track.</b> Projected to have '+fmt(res.surplus)+' more than your FI number at retirement.'; }
+  else { banner.className='banner bad'; banner.innerHTML='<b>Behind by '+fmt(-res.surplus)+'.</b> See the required savings below to close the gap.'; }
+  drawRetirementChart(res.trajectory, res.retireAge, res.depletionAge);
+
+  // FIX: state the absolute contribution needed (a delta alone can imply a negative contribution when far ahead)
+  const nc = res.neededContribution;
+  const needTxt = nc===null ? 'n/a' : (nc<=0 ? 'Already covered' : fmt(nc)+'/yr');
+  const needLbl = nc===null ? 'Contribution needed to hit your number' : (nc<=0 ? 'Even $0 more saved reaches your number' : 'Contribution needed (you contribute '+fmt(res.contribution)+')');
+  const stats = [
+    {v:fmt(res.fiNumber), l:'FI number needed at retirement'},
+    {v:fmt(res.classicRuleNumber), l:'Classic '+document.getElementById('rSwr').value+'% rule (for comparison)'},
+    {v:fmt(res.projectedSavings), l:'Projected savings at retirement'},
+    {v:fmt(Math.abs(res.surplus)), l:res.surplus>=0?'Surplus':'Shortfall', c:res.surplus>=0?'var(--gain)':'var(--loss)'},
+    {v:needTxt, l:needLbl},
+    {v:res.coastReached?'Yes':'Not yet', l:'Coast FI reached ('+fmt(res.coastFINumber)+' needed)', c:res.coastReached?'var(--gain)':undefined},
+    {v:res.yearsToFI===null?'80+ yrs':res.yearsToFI+' yrs', l:'Time to reach your FI number'},
+  ];
+  if(res.depletionAge) stats.push({v:'Age '+res.depletionAge, l:'Funds projected to run out', c:'var(--loss)'});
+  document.getElementById('rStats').innerHTML = stats.map(s=>`<div class="stat"><b${s.c?` style="color:${s.c}"`:''}>${s.v}</b><span>${s.l}</span></div>`).join('');
+  try{ saveSimple('retireCalcState', RET_IDS); }catch(e){}
+}
+
+function drawRetirementChart(trajectory, retireAge, depletionAge){
+  const W=700,H=380, padL=64, padR=16, padT=16, padB=32, plotW=W-padL-padR, plotH=H-padT-padB;
+  const minAge = trajectory[0].age, maxAge = trajectory[trajectory.length-1].age, span = Math.max(1, maxAge-minAge);
+  const maxV = Math.max(...trajectory.map(t=>t.balance))*1.08 || 1;
+  const x = age => padL + ((age-minAge)/span)*plotW, y = v => padT+plotH-(v/maxV)*plotH;
+  let xLabels=''; const step=Math.max(1,Math.round(span/6));
+  for(let a=minAge;a<=maxAge;a+=step) xLabels+=`<text x="${x(a)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--slate)" font-family="JetBrains Mono, monospace">${a}</text>`;
+  const line = trajectory.map((t,i)=>(i===0?'M':'L')+x(t.age)+' '+y(t.balance)).join(' ');
+  const vline = (age,col) => `<line x1="${x(age)}" y1="${padT}" x2="${x(age)}" y2="${padT+plotH}" stroke="${col}" stroke-dasharray="3,3"/>`;
+  document.getElementById('rChartWrap').innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${yAxis(maxV,W,H,padL,padR,padT,plotH)}${vline(retireAge,'var(--slate)')}${depletionAge?vline(depletionAge,'var(--loss)'):''}<path d="${line}" fill="none" stroke="#C99A3A" stroke-width="2.5"/>${xLabels}</svg>`;
+}
+attachHover(document.getElementById('rChartWrap'), () => lastRet ? lastRet.trajectory.length-1 : 0, idx => {
+  const t = lastRet.trajectory[idx];
+  const phase = t.need===null ? 'saving' : 'retired';
+  return 'Age '+t.age+' ('+phase+')<br>Balance: '+fmt(t.balance)+(t.need!==null ? '<br>Net need that year: '+fmt(t.need) : '');
+});
+document.getElementById('rRunBtn').onclick = function(){ withBusyLabel(this, 'Calculating…', runRetirement); };
+
+// ===== Mortgage =====
+// The payment is FOUND, not looked up: simulate the amortization for a trial payment, and bisect until the
+// balance lands on zero at term end. Everything else (PMI, selling math) reads off that same simulation.
+function computeMortgage(p){
+  const down = p.homePrice*p.downPct/100, loan = p.homePrice-down, months = Math.max(1, Math.round(p.termYears*12)), mr = p.rate/1200;
+  const ma = Math.pow(1+p.appreciation/100, 1/12)-1;
+  const homeAt = m => p.homePrice*Math.pow(1+ma, m);
+  const amortize = pay => {
+    let bal = loan, interestSum = 0, pmiDrop = null, cross = null;
+    const sched = [{m:0, bal:loan}];
+    for(let m=1; m<=months && bal>0.005; m++){
+      const i = bal*mr, pr = Math.min(bal, Math.max(0, pay-i));
+      bal -= pr; interestSum += i;
+      if(cross===null && pr>i) cross = m;
+      if(pmiDrop===null && bal/homeAt(m)<=0.8) pmiDrop = m;
+      sched.push({m, bal:Math.max(bal,0)});
+    }
+    return {sched, bal, interestSum, pmiDrop, cross, payoff:sched[sched.length-1].m};
+  };
+  let pay = loan/months;
+  if(mr>0 && loan>0){
+    let lo = loan/months, hi = loan;
+    for(let k=0; k<60; k++){ const mid=(lo+hi)/2; if(amortize(mid).bal>0.005) lo=mid; else hi=mid; }
+    pay = hi;
+  }
+  const base = amortize(pay), ext = p.extra>0 ? amortize(pay+p.extra) : null;
+  const pmiApplies = loan/p.homePrice > 0.8;
+  const pmiMonthly = pmiApplies ? loan*p.pmiRate/1200 : 0;
+  const pmiMonths = pmiApplies ? (base.pmiDrop===null ? months : base.pmiDrop) : 0;
+  const tax = p.homePrice*p.taxRate/1200, ins = p.insurance/12, maint = p.homePrice*p.maintRate/1200;
+  const carry = tax+ins+p.hoa+maint;
+  const trueMonthly = pay + carry + pmiMonthly;
+  const beyondPrice = base.interestSum + carry*months + pmiMonthly*pmiMonths;
+  const N = Math.min(months, Math.max(1, Math.round(p.sellYears*12)));
+  const balN = base.sched[Math.min(N, base.sched.length-1)].bal;
+  const spent = down + N*(pay+carry) + pmiMonthly*Math.min(N, pmiMonths);
+  const proceeds = homeAt(N)*0.94 - balN;
+  return {down, loan, months, pay, base, ext, pmiApplies, pmiMonthly, tax, ins, maint, hoa:p.hoa, trueMonthly, beyondPrice, N, spent, proceeds, effMonthly:(spent-proceeds)/N, ltv:loan/p.homePrice*100, homeAt};
+}
+
+const dur = m => (m>=12 ? Math.floor(m/12)+' yr ' : '') + (m%12 ? (m%12)+' mo' : '');
+let lastMort = null;
+function runMortgage(){
+  const g = id => parseFloat(document.getElementById(id).value) || 0;
+  const r = computeMortgage({homePrice:Math.max(1,g('mHome')), downPct:Math.min(100,Math.max(0,g('mDown'))), rate:Math.max(0,g('mRate')),
+    termYears:Math.min(50,Math.max(1,g('mTerm'))), taxRate:g('mTax'), insurance:g('mIns'), pmiRate:g('mPmi'), hoa:g('mHoa'),
+    maintRate:g('mMaint'), appreciation:g('mApp'), extra:g('mExtra'), sellYears:Math.min(50,Math.max(1,g('mSell')))});
+  lastMort = r;
+  const b = document.getElementById('mBanner'); b.style.display='block';
+  b.innerHTML = '<b>'+fmt(r.trueMonthly)+' / month all-in.</b> P&amp;I '+fmt(r.pay)+' · tax '+fmt(r.tax)+' · insurance '+fmt(r.ins)+(r.pmiMonthly?' · PMI '+fmt(r.pmiMonthly):'')+(r.hoa?' · HOA '+fmt(r.hoa):'')+' · upkeep '+fmt(r.maint);
+  drawMortgageChart(r);
+  const stats = [
+    {v:fmt(r.pay), l:'Principal & interest (solved)'},
+    {v:fmt(r.loan), l:'Loan amount ('+r.ltv.toFixed(0)+'% of price)'},
+    {v:r.pmiApplies ? (r.base.pmiDrop===null?'Never':'Month '+r.base.pmiDrop) : 'None needed', l:r.pmiApplies ? 'PMI drops off ('+(r.base.pmiDrop===null?'balance stays above 80%':dur(r.base.pmiDrop))+')' : 'You put 20%+ down'},
+    {v:r.base.cross===null?'Never':dur(r.base.cross), l:'Until principal overtakes interest', c:'var(--gain)'},
+    {v:fmt(r.base.interestSum), l:'Total interest over the term', c:'var(--loss)'},
+    {v:fmt(r.beyondPrice), l:'Total cost beyond the price tag'},
+  ];
+  if(r.ext) stats.push({v:dur(r.base.payoff-r.ext.payoff)+' sooner', l:'With extra payments — saves '+fmt(r.base.interestSum-r.ext.interestSum)+' interest', c:'var(--gain)'});
+  stats.push({v:fmt(r.effMonthly)+'/mo', l:'Effective cost of living here if you sell in '+dur(r.N)+' (after equity & 6% selling costs) — compare to rent'});
+  stats.push({v:fmt(r.proceeds), l:'Cash in hand after selling & paying off the loan'});
+  document.getElementById('mStats').innerHTML = stats.map(s=>`<div class="stat"><b${s.c?` style="color:${s.c}"`:''}>${s.v}</b><span>${s.l}</span></div>`).join('');
+  try{ saveSimple('mortgageCalcState', MORT_IDS); }catch(e){}
+}
+function drawMortgageChart(r){
+  const W=700,H=380, padL=64, padR=16, padT=16, padB=32, plotW=W-padL-padR, plotH=H-padT-padB;
+  const maxV = r.loan*1.05 || 1, x = m => padL+(m/r.months)*plotW, y = v => padT+plotH-(v/maxV)*plotH;
+  const path = (s,col,dash) => `<path d="${s.sched.map((t,i)=>(i===0?'M':'L')+x(t.m)+' '+y(t.bal)).join(' ')}" fill="none" stroke="${col}" stroke-width="2.5"${dash?' stroke-dasharray="6,4"':''}/>`;
+  const vline = (m,col) => m===null ? '' : `<line x1="${x(m)}" y1="${padT}" x2="${x(m)}" y2="${padT+plotH}" stroke="${col}" stroke-dasharray="3,3"/>`;
+  let xl=''; const yrs=Math.max(1,Math.round(r.months/12)), st=Math.max(1,Math.round(yrs/6));
+  for(let yv=0; yv*12<=r.months; yv+=st) xl+=`<text x="${x(yv*12)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--slate)" font-family="JetBrains Mono, monospace">Yr ${yv}</text>`;
+  document.getElementById('mChartWrap').innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${yAxis(maxV,W,H,padL,padR,padT,plotH)}${r.pmiApplies?vline(r.base.pmiDrop,'var(--slate)'):''}${vline(r.base.cross,'var(--loss)')}${path(r.base,'#C99A3A')}${r.ext?path(r.ext,'#4C8A63',true):''}${xl}</svg>`;
+}
+attachHover(document.getElementById('mChartWrap'), () => lastMort ? lastMort.months : 0, idx => {
+  const r = lastMort, at = s => s.sched[Math.min(idx, s.sched.length-1)].bal;
+  const bal = at(r.base), val = r.homeAt(idx);
+  return 'Month '+idx+' (yr '+(idx/12).toFixed(1)+')<br>Loan balance: '+fmt(bal)+(r.ext?'<br>With extra: '+fmt(at(r.ext)):'')+'<br>Home value: '+fmt(val)+'<br>Equity: '+fmt(val-bal);
+});
+document.getElementById('mDown').oninput = function(){
+  document.getElementById('mDownVal').textContent = this.value+'%';
+  document.getElementById('mDownComputed').textContent = fmt((parseFloat(document.getElementById('mHome').value)||0)*this.value/100);
+};
+document.getElementById('mHome').oninput = () => document.getElementById('mDown').dispatchEvent(new Event('input'));
+document.getElementById('mRunBtn').onclick = function(){ withBusyLabel(this, 'Calculating…', runMortgage); };
+
+function saveState(){
+  try{
+    const state = {
+      assets: readAssetsRaw(),
+      corr: corrInput.value, horizon: document.getElementById('horizon').value, timeUnit: document.getElementById('timeUnit').value,
+      initial: document.getElementById('initial').value,
+      cashMode: document.getElementById('cashMode').value, cashAmount: document.getElementById('cashAmount').value,
+      inflAdjust: document.getElementById('inflAdjust').checked, inflRate: document.getElementById('inflRate').value,
+      fees: document.getElementById('fees').value, turb: document.getElementById('turb').value,
+      simsCount: document.getElementById('simsCount').value, goal: document.getElementById('goal').value,
+      realDollars: document.getElementById('realDollars').checked, targetSuccess: document.getElementById('targetSuccess').value
+    };
+    localStorage.setItem('portfolioSimState', JSON.stringify(state));
+  }catch(e){}
+}
+const RET_IDS=['rCurrentAge','rRetireAge','rLifeExp','rSavings','rContribution','rExpenses','rReplace','rOtherIncome','rIncomeAge','rPartIncome','rPartEnd','rHealth','rHealthGrowth','rOneTime','rOneAge','rPreReturn','rPostReturn','rInfl','rFees','rSwr'];
+const MORT_IDS=['mHome','mDown','mRate','mTerm','mExtra','mTax','mIns','mPmi','mHoa','mMaint','mApp','mSell'];
+function saveSimple(key, ids){ const s={}; ids.forEach(id=>{ s[id]=document.getElementById(id).value; }); localStorage.setItem(key, JSON.stringify(s)); }
+function loadSimple(key){
+  try{
+    const raw = localStorage.getItem(key); if(!raw) return false;
+    const s = JSON.parse(raw);
+    Object.keys(s).forEach(id=>{ const el=document.getElementById(id); if(el) el.value=s[id]; });
+    return true;
+  }catch(e){ return false; }
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem('portfolioSimState');
+    if(!raw) return false;
+    const s = JSON.parse(raw);
+    rowsEl.innerHTML = '';
+    (s.assets||[]).forEach(a=>addRow(a));
+    if(rowsEl.children.length===0) return false;
+    corrInput.value = s.corr ?? 0.3; document.getElementById('corrVal').textContent = parseFloat(corrInput.value).toFixed(2);
+    document.getElementById('horizon').value = s.horizon ?? 20;
+    document.getElementById('timeUnit').value = s.timeUnit ?? 'years';
+    document.getElementById('initial').value = s.initial ?? 100000;
+    document.getElementById('cashMode').value = s.cashMode ?? 'none';
+    document.getElementById('cashAmount').value = s.cashAmount ?? 10000;
+    document.getElementById('inflAdjust').checked = s.inflAdjust ?? true;
+    document.getElementById('inflRate').value = s.inflRate ?? 2.5;
+    document.getElementById('fees').value = s.fees ?? 0.5;
+    document.getElementById('turb').value = s.turb ?? 5;
+    document.getElementById('turbVal').textContent = turbLabel(s.turb ?? 5);
+    document.getElementById('simsCount').value = s.simsCount ?? 3000;
+    document.getElementById('simsVal').textContent = parseInt(s.simsCount ?? 3000).toLocaleString();
+    document.getElementById('goal').value = s.goal ?? '';
+    document.getElementById('realDollars').checked = s.realDollars ?? false;
+    document.getElementById('targetSuccess').value = s.targetSuccess ?? 90;
+    document.getElementById('targetSuccessVal').textContent = (s.targetSuccess ?? 90)+'%';
+    document.getElementById('cashMode').dispatchEvent(new Event('change'));
+    return true;
+  }catch(e){ return false; }
+}
+
+if(!loadState()){
+  defaults.forEach(addRow);
+}
+document.getElementById('turbVal').textContent = turbLabel(document.getElementById('turb').value);
+document.getElementById('simsVal').textContent = parseInt(document.getElementById('simsCount').value).toLocaleString();
+runSimulation();
+
+loadSimple('retireCalcState');
+document.getElementById('rReplace').dispatchEvent(new Event('input'));
+document.getElementById('rSwr').dispatchEvent(new Event('input'));
+runRetirement();
+
+loadSimple('mortgageCalcState');
+document.getElementById('mDown').dispatchEvent(new Event('input'));
+runMortgage();
+
+try{
+  const savedTab = localStorage.getItem('financeToolkitTab');
+  if(savedTab && TABS[savedTab]) switchTab(savedTab);
+}catch(e){}
+</script>
+</body>
+</html>
